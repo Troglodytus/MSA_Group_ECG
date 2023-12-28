@@ -10,7 +10,7 @@ FileID = num2str(FileID);
 HEADERFILE= [FileID,'.hea'];      % header-file in text format
 ATRFILE= [FileID,'.atr'];         % attributes-file in binary format
 DATAFILE=[FileID,'.dat'];         % data-file
-SAMPLES2READ=90000;         % number of samples to be read
+SAMPLES2READ=7000;         % number of samples to be read
                             % in case of more than one signal:
                             % 2*SAMPLES2READ samples are read
 
@@ -251,11 +251,11 @@ numeric_labels(strcmp(class_labels, 'arrhythmia')) = 2;
 normalized_windows = zeros(length(windows), 256);
 
 for i = 1:length(windows)
-    % Interpolate to the desired length
+    % Interpolate to the 256 length
     normalized_windows(i, :) = interp1(linspace(0, 1, length(windows{i})), windows{i}, linspace(0, 1, 256));
 end
 
-normalized_windows = normalize(normalized_windows);
+% normalized_windows = normalize(normalized_windows);
 
 
 %plot windows and labels
@@ -274,17 +274,16 @@ for i = 1:length(windows)
         plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1);
     end
     
-    % Note: The 'text' line is commented out. Uncomment it if you want to display text labels.
     % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
     
     temp = length(windows{i});
     total = total + temp;
 end
 
-% Additional customization (optional)
+% Additional customization 
 xlabel('X-axis Label');  % Add appropriate labels
 ylabel('Y-axis Label');
-legend('Normal', 'Arrhythmia');  
+legend('normal', 'arrhythmia');  
 string = ['Classified Windows for ECG signal ', DATAFILE];
 title(string);
 fprintf(1, 'displaying classified windows\n');
@@ -297,7 +296,9 @@ numOutputClasses = 2;  % Two output classes: 'normal' and 'arrhythmia'
 targetMatrix = numeric_labels';
 
 % Define the neural network architecture
-net = patternnet([10, 15, 25, 15, 10, numOutputClasses]);
+net = patternnet([10, 15, 25, 20, 10, numOutputClasses],  'trainlm');
+% Modify output layer activation function
+net.layers{end}.transferFcn = 'softmax';
 
 % Split the data into training and testing sets
 trainingPercentage = 80;
@@ -319,7 +320,7 @@ testingTargets = targetMatrix(:, cp.test)';
 net.trainParam.epochs = 15;  % Change this to the desired number of epochs
 net.trainParam.showWindow = true;  % Display training progress
 net.trainParam.max_fail = 6;  % Maximum validation failures
-net.trainParam.lr = 0.02;  % Learning rate
+net.trainParam.lr = 0.04;  % Learning rate
 net.trainParam.goal = 1e-17;  % Weight decay
 
 net = train(net, trainingData', trainingTargets');
