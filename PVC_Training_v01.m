@@ -4,7 +4,7 @@ clc; clear all; close all;
 PATH= 'C:\Users\Daniel\Documents\FHKärnten\Medical Engineering\1. Semester\Applied Medical Signal Analysis\MSA Projekt\Test';
 
 % List of file IDs to process
-fileIDs = [100, 101, 103, 104, 105, 106, 112, 114, 115, 116, 117, 200, 208];
+fileIDs = [100, 101, 103, 104, 105, 106, 112, 114, 115, 116, 117, 200, 208,214,221];
 
 % Initialize variables to store aggregated data
 allNormalizedWindows = [];
@@ -16,7 +16,7 @@ for fileID = fileIDs
     HEADERFILE= [FileID,'.hea'];
     ATRFILE= [FileID,'.atr'];
     DATAFILE=[FileID,'.dat'];
-    SAMPLES2READ=90000;
+    SAMPLES2READ=200000;
 
     %------ LOAD HEADER DATA --------------------------------------------------
     fprintf(1,'loading %s ...\n', HEADERFILE);
@@ -127,7 +127,7 @@ for fileID = fileIDs
         text(ATRTIMED(k),0,num2str(ANNOTD(k)));
     end;
     xlim([TIME(1), TIME(end)]);
-    xlabel('Time / s'); ylabel('Voltage / mV');
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
     string=['ECG signal ',DATAFILE];
     title(string);
     fprintf(1,'displaying original data \n');
@@ -148,9 +148,9 @@ for fileID = fileIDs
     plot(TIME, M(:,1),'r');
     for k=1:length(ATRTIMED)
         text(ATRTIMED(k),0,num2str(ANNOTD(k)));
-    end;
+    end
     xlim([TIME(1), TIME(end)]);
-    xlabel('Time / s'); ylabel('Voltage / mV');
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
     string=['ECG signal ',DATAFILE, ' - zero-phase filtered'];
     title(string);
     fprintf(1,"displaying highpass filtered image \n");
@@ -182,11 +182,11 @@ for fileID = fileIDs
     % plot(dataframe(:, 1), dataframe(:, 3), 'g');
     for k = 1:length(ATRTIMED)
         text(ATRTIMED(k), 0, num2str(ANNOTD(k)));
-    end;
+    end
     scatter(peaktimes, ecgpeaks_norm, 'r', 'filled');
     xlim([dataframe(1, 1), dataframe(end, 1)]);
-    xlabel('Time / s'); ylabel('Voltage / mV');
-    string=['Filtered ECG signal ', DATAFILE];
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
+    string=['Low Pass filtered ECG signal - ', DATAFILE];
     title(string);
     fprintf(1, 'displaying filtered data\n');
     
@@ -279,7 +279,7 @@ for i = 1:length(windows)
     
     % Check the class label and plot colored line accordingly
     if strcmp(class_labels{i}, 'normal')  % Use strcmp for string comparison
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'b-', 'LineWidth', 1);
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0], 'LineWidth', 1);
     elseif strcmp(class_labels{i}, 'arrhythmia')  % Use strcmp for string comparison
         plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1);
     end
@@ -291,10 +291,9 @@ for i = 1:length(windows)
 end
 
 % Additional customization 
-xlabel('X-axis Label');  % Add appropriate labels
-ylabel('Y-axis Label');
+xlabel('Time [s]'); ylabel('Voltage norm.');
 legend('normal', 'arrhythmia');  
-string = ['Classified Windows for ECG signal ', DATAFILE];
+string = ['ECG Actual Labels of ', num2str(fileIDs)];
 title(string);
 fprintf(1, 'displaying classified windows\n');
 hold off
@@ -305,7 +304,7 @@ hold on;
 
 for i = 1:size(allNormalizedWindows, 1)
     if allTargetMatrix(i) == 1
-        plot(allNormalizedWindows(i, :), 'b');
+        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
     else
         plot(allNormalizedWindows(i, :), 'r');
 
@@ -314,11 +313,10 @@ end
 
 hold off;
 
-title('Normalized Windows');
-xlabel('Index');
-ylabel('Normalized Values');
-
-legend('Normal', 'Arrhythmia', 'Location', 'best');
+title('RR Intervals - Actual Labels');
+xlabel('RR Interval norm. - Index');
+ylabel('Voltage norm.');
+legend('normal', 'arrhythmia');  
 
 
 % ------ NEURAL NETWORK TRAINING -------------------------------------------
@@ -348,16 +346,16 @@ testingData = allNormalizedWindows(cp.test, :);
 testingTargets = allTargetMatrix(:, cp.test)';
 
 % Train the neural network
-net.trainParam.epochs = 25;  % Change this to the desired number of epochs
+net.trainParam.epochs = 20;  % Change this to the desired number of epochs
 net.trainParam.showWindow = true;  % Display training progress
-net.trainParam.max_fail = 6;  % Maximum validation failures
-net.trainParam.lr = 0.05;  % Learning rate
-net.trainParam.goal = 1e-17;  % Weight decay
+net.trainParam.max_fail = 20;  % Maximum validation failures
+net.trainParam.lr = 0.04;  % Learning rate
+net.trainParam.goal = 1e-15;  % Weight decay
 
 net = train(net, trainingData', trainingTargets');
 
 % Save the trained neural network model to a file
-save('ECG_model_v01.mat', 'net');
+save('ECG_model_v02.mat', 'net');
 
 % Test the neural network
 predictions = round(net(testingData'),0);

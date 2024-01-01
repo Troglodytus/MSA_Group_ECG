@@ -4,7 +4,7 @@ clc; clear all; close all;
 PATH= 'C:\Users\Daniel\Documents\FHKärnten\Medical Engineering\1. Semester\Applied Medical Signal Analysis\MSA Projekt\Test';
 
 % List of file IDs to process
-fileIDs = [203];
+fileIDs = [119,202, 219];
 
 % Initialize variables to store aggregated data
 allNormalizedWindows = [];
@@ -16,7 +16,7 @@ for fileID = fileIDs
     HEADERFILE= [FileID,'.hea'];
     ATRFILE= [FileID,'.atr'];
     DATAFILE=[FileID,'.dat'];
-    SAMPLES2READ=20000;
+    SAMPLES2READ=30000;
 
     %------ LOAD HEADER DATA --------------------------------------------------
     fprintf(1,'loading %s ...\n', HEADERFILE);
@@ -127,7 +127,7 @@ for fileID = fileIDs
         text(ATRTIMED(k),0,num2str(ANNOTD(k)));
     end;
     xlim([TIME(1), TIME(end)]);
-    xlabel('Time / s'); ylabel('Voltage / mV');
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
     string=['ECG signal ',DATAFILE];
     title(string);
     fprintf(1,'displaying original data \n');
@@ -248,7 +248,7 @@ end
 numOutputClasses = 2;  % Two output classes: 'normal' and 'arrhythmia'
 targetMatrix = numeric_labels';
 
-load('ECG_model_v01.mat');
+load('ECG_model_v02.mat');
 
 % Predict using the loaded model
 predictions = round(net(allNormalizedWindows'),0);
@@ -263,7 +263,7 @@ hold on;
 
 for i = 1:size(allNormalizedWindows, 1)
     if predictions(i) == 1
-        plot(allNormalizedWindows(i, :), 'b');
+        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
     else
         plot(allNormalizedWindows(i, :), 'r');
     end
@@ -271,9 +271,9 @@ end
 
 hold off;
 
-title('Predictions');
-xlabel('Index');
-ylabel('Normalized Values');
+title('RR Intervals - Predictions');
+xlabel('RR Interval norm. - Index');
+ylabel('Voltage norm.');
 
 legend('Normal', 'Arrhythmia');
 
@@ -282,7 +282,7 @@ hold on;
 
 for i = 1:size(allNormalizedWindows, 1)
     if allTargetMatrix(i) == 1
-        plot(allNormalizedWindows(i, :), 'b');
+        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
     else
         plot(allNormalizedWindows(i, :), 'r');
     end
@@ -290,9 +290,9 @@ end
 
 hold off;
 
-title('Actual Labels');
-xlabel('Index');
-ylabel('Normalized Values');
+title('RR Intervals - Actual Labels');
+xlabel('RR Interval norm. - Index');
+ylabel('Voltage norm.');
 
 legend('Normal', 'Arrhythmia');
 
@@ -304,35 +304,6 @@ disp('Confusion Matrix:');
 disp(confMatrix);
 
 %----------DISPLAY DATA WINDOWS -----------
-figure(3); clf, box on, hold on
-
-temp = 0;
-total = 0;
-for i = 1:length(windows)
-    window_start = length(windows{i}) - (length(windows{i}) - 1) + total;
-    window_end = length(windows{i}) - 1 + total;
-    
-    % Check the class label and plot colored line accordingly
-    if strcmp(class_labels{i}, 'normal')  % Use strcmp for string comparison
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'b-', 'LineWidth', 1);
-    elseif strcmp(class_labels{i}, 'arrhythmia')  % Use strcmp for string comparison
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1);
-    end
-    
-    % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
-    
-    temp = length(windows{i});
-    total = total + temp;
-end
-% Additional customization 
-xlabel('X-axis Label');  % Add appropriate labels
-ylabel('Y-axis Label');
-legend('normal', 'arrhythmia');  
-string = ['ECG Actual Labels', DATAFILE];
-title(string);
-fprintf(1, 'displaying actual labelled windows\n');
-hold off
-
 figure(4); clf, box on, hold on
 
 temp = 0;
@@ -342,10 +313,10 @@ for i = 1:length(windows)
     window_end = length(windows{i}) - 1 + total;
     
     % Check the class label and plot colored line accordingly
-    if allTargetMatrix(i) == 1  
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'b-', 'LineWidth', 1);
-    elseif allTargetMatrix(i) == 2  
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1);
+    if allTargetMatrix(i) == 1
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0], 'LineWidth', 1, 'DisplayName','normal');
+    elseif allTargetMatrix(i) == 2
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1,'DisplayName','arrhythmia');
     end
     
     % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
@@ -353,11 +324,38 @@ for i = 1:length(windows)
     temp = length(windows{i});
     total = total + temp;
 end
-% Additional customization 
-xlabel('X-axis Label');  % Add appropriate labels
-ylabel('Y-axis Label');
-legend('normal', 'arrhythmia');  
-string = ['Predicted Labels', DATAFILE];
+
+xlabel('Time [s]'); ylabel('Voltage norm.');
+legend('arrhythmia','normal');  
+string = ['ECG Actual Labels of ', num2str(fileIDs)];
+title(string);
+fprintf(1, 'displaying actual labelled windows\n');
+hold off
+
+figure(5); clf, box on, hold on
+
+temp = 0;
+total = 0;
+for i = 1:length(windows)
+    window_start = length(windows{i}) - (length(windows{i}) - 1) + total;
+    window_end = length(windows{i}) - 1 + total;
+    
+    % Check the prediction label and plot colored line accordingly
+    if predictions(i) == 1  
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0],'LineWidth', 1,'DisplayName','normal');
+    elseif predictions(i) == 2  
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1,'DisplayName','arrhythmia');
+    end
+    
+    % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
+    
+    temp = length(windows{i});
+    total = total + temp;
+end
+
+xlabel('Time [s]'); ylabel('Voltage norm.');
+legend('arrhythmia','normal');   
+string = ['Predicted Labels of ', num2str(fileIDs)];
 title(string);
 fprintf(1, 'displaying predicted labelled windows\n');
 hold off
