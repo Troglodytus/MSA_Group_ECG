@@ -16,7 +16,7 @@ for fileID = fileIDs
     HEADERFILE= [FileID,'.hea'];
     ATRFILE= [FileID,'.atr'];
     DATAFILE=[FileID,'.dat'];
-    SAMPLES2READ=30000;
+    SAMPLES2READ=200000;
 
     %------ LOAD HEADER DATA --------------------------------------------------
     fprintf(1,'loading %s ...\n', HEADERFILE);
@@ -275,7 +275,7 @@ title('RR Intervals - Predictions');
 xlabel('RR Interval norm. - Index');
 ylabel('Voltage norm.');
 
-legend('Normal', 'Arrhythmia');
+legend('arrhythmia','normal');  
 
 figure(3);
 hold on;
@@ -294,7 +294,7 @@ title('RR Intervals - Actual Labels');
 xlabel('RR Interval norm. - Index');
 ylabel('Voltage norm.');
 
-legend('Normal', 'Arrhythmia');
+legend('arrhythmia','normal');  
 
 % Create a confusion matrix
 confMatrix = confusionmat(allTargetMatrix, predictions);

@@ -151,7 +151,7 @@ for fileID = fileIDs
     end
     xlim([TIME(1), TIME(end)]);
     xlabel('Time [s]'); ylabel('Voltage [mV]');
-    string=['ECG signal ',DATAFILE, ' - zero-phase filtered'];
+    string=['ECG signal ',DATAFILE, ' - high-pass filtered'];
     title(string);
     fprintf(1,"displaying highpass filtered image \n");
     
@@ -186,7 +186,7 @@ for fileID = fileIDs
     scatter(peaktimes, ecgpeaks_norm, 'r', 'filled');
     xlim([dataframe(1, 1), dataframe(end, 1)]);
     xlabel('Time [s]'); ylabel('Voltage [mV]');
-    string=['Low Pass filtered ECG signal - ', DATAFILE];
+    string=['Filtered ECG signal - ', DATAFILE];
     title(string);
     fprintf(1, 'displaying filtered data\n');
     
@@ -335,6 +335,7 @@ nWindows = size(allNormalizedWindows, 1);
 seed = 40;
 rng(seed);
 
+
 cp = cvpartition(nWindows, 'HoldOut', (100 - trainingPercentage) / 100);
 
 % Use logical indexing to select training data
@@ -366,6 +367,16 @@ predictions = round(net(testingData'),0);
 % Transpose testingTargets if needed
 [~, trueLabels] = max(testingTargets', [], 1);
 
+% Create a confusion matrix
+confMat = confusionmat(testingTargets', predictedLabels);
+
+% Display the confusion matrix
+disp('Confusion Matrix:');
+disp(confMat);
+% Create and display the confusion chart
+figure;
+confusionchart(testingTargets', predictedLabels, 'Normalization', 'row-normalized');
+title('Confusion Chart - ECG Classification');
 
 % Evaluate performance
 accuracy = sum(predictions == testingTargets') / numel(testingTargets');
