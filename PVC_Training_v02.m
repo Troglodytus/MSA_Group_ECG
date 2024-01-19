@@ -4,7 +4,7 @@ clc; clear all; close all;
 PATH= 'C:\Users\Daniel\Documents\FHKärnten\Medical Engineering\1. Semester\Applied Medical Signal Analysis\MSA Projekt\Test';
 
 % List of file IDs to process
-fileIDs = [119,202,219];
+fileIDs = [100, 101, 105, 103, 104, 106, 112, 114, 115, 116, 117, 200, 208,214,221];
 
 % Initialize variables to store aggregated data
 allNormalizedWindows = [];
@@ -142,6 +142,18 @@ for fileID = fileIDs
     Numerator = Filter_FIR.Numerator;
     sig_filter = filtfilt(Numerator,1,M(:,1));
     
+    % Plotting Figure 2 (Original Data, Filtered Data, Atr. Labels) 
+    figure(2); clf, box on, hold on
+    plot(TIME, sig_filter,'b');
+    plot(TIME, M(:,1),'r');
+    for k=1:length(ATRTIMED)
+        text(ATRTIMED(k),0,num2str(ANNOTD(k)));
+    end
+    xlim([TIME(1), TIME(end)]);
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
+    string=['ECG signal ',DATAFILE, ' - high-pass filtered'];
+    title(string);
+    fprintf(1,"displaying highpass filtered image \n");
     
     % ------ FEATURE EXTRACTION AND WINDOW LABELING -----------------------------
     % Calculating Moving Mean
@@ -164,6 +176,19 @@ for fileID = fileIDs
     dataframe(:, 2) = (dataframe(:, 2) - min(dataframe(:, 2))) / (max(dataframe(:, 2)) - min(dataframe(:, 2)));
     dataframe(:, 2) = sqrt(dataframe(:, 2));
     
+    
+    figure(3); clf, box on, hold on
+    plot(dataframe(:, 1), dataframe(:, 2), 'b');
+    % plot(dataframe(:, 1), dataframe(:, 3), 'g');
+    for k = 1:length(ATRTIMED)
+        text(ATRTIMED(k), 0, num2str(ANNOTD(k)));
+    end
+    scatter(peaktimes, ecgpeaks_norm, 'r', 'filled');
+    xlim([dataframe(1, 1), dataframe(end, 1)]);
+    xlabel('Time [s]'); ylabel('Voltage [mV]');
+    string=['Filtered ECG signal - ', DATAFILE];
+    title(string);
+    fprintf(1, 'displaying filtered data\n');
     
     
     
@@ -240,70 +265,10 @@ for fileID = fileIDs
     
 end  
         
+        % normalized_windows = normalize(normalized_windows);
 
 
-
-% ------ NEURAL NETWORK TRAINING -------------------------------------------
-% Create the target matrix for normalized windows
-numOutputClasses = 2;  % Two output classes: 'normal' and 'arrhythmia'
-targetMatrix = numeric_labels';
-
-load('ECG_model_DEMO_v01.mat');
-
-% Predict using the loaded model
-predictions = round(net(allNormalizedWindows'),0);
-
-% Convert predictions to indices
-[~, predictedLabels] = max(predictions, [], 1);
-
-
-% Create a new figure displaying line plots colored according to predicted labels
-figure(2);
-hold on;
-
-for i = 1:size(allNormalizedWindows, 1)
-    if predictions(i) == 1
-        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
-    else
-        plot(allNormalizedWindows(i, :), 'r');
-    end
-end
-
-hold off;
-
-title('RR Intervals - Predictions');
-xlabel('RR Interval norm. - Index');
-ylabel('Voltage norm.');
-
-legend('arrhythmia','normal');  
-
-figure(3);
-hold on;
-
-for i = 1:size(allNormalizedWindows, 1)
-    if allTargetMatrix(i) == 1
-        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
-    else
-        plot(allNormalizedWindows(i, :), 'r');
-    end
-end
-
-hold off;
-
-title('RR Intervals - Actual Labels');
-xlabel('RR Interval norm. - Index');
-ylabel('Voltage norm.');
-
-legend('arrhythmia','normal');  
-
-% Create a confusion matrix
-confMatrix = confusionmat(allTargetMatrix, predictions);
-
-% Display the confusion matrix
-disp('Confusion Matrix:');
-disp(confMatrix);
-
-%----------DISPLAY DATA WINDOWS -----------
+%plot windows and labels
 figure(4); clf, box on, hold on
 
 temp = 0;
@@ -313,10 +278,10 @@ for i = 1:length(windows)
     window_end = length(windows{i}) - 1 + total;
     
     % Check the class label and plot colored line accordingly
-    if allTargetMatrix(i) == 1
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0], 'LineWidth', 1, 'DisplayName','normal');
-    elseif allTargetMatrix(i) == 2
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1,'DisplayName','arrhythmia');
+    if strcmp(class_labels{i}, 'normal')  % Use strcmp for string comparison
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0], 'LineWidth', 1);
+    elseif strcmp(class_labels{i}, 'arrhythmia')  % Use strcmp for string comparison
+        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1);
     end
     
     % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
@@ -325,37 +290,94 @@ for i = 1:length(windows)
     total = total + temp;
 end
 
+% Additional customization 
 xlabel('Time [s]'); ylabel('Voltage norm.');
-legend('arrhythmia','normal');  
+legend('normal', 'arrhythmia');  
 string = ['ECG Actual Labels of ', num2str(fileIDs)];
 title(string);
-fprintf(1, 'displaying actual labelled windows\n');
+fprintf(1, 'displaying classified windows\n');
 hold off
 
-figure(5); clf, box on, hold on
+% Plotting the data
+figure(5);
+hold on;
 
-temp = 0;
-total = 0;
-for i = 1:length(windows)
-    window_start = length(windows{i}) - (length(windows{i}) - 1) + total;
-    window_end = length(windows{i}) - 1 + total;
-    
-    % Check the prediction label and plot colored line accordingly
-    if predictions(i) == 1  
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'Color', [0, 0.5, 0],'LineWidth', 1,'DisplayName','normal');
-    elseif predictions(i) == 2  
-        plot(dataframe(window_start:window_end, 1), dataframe(window_start:window_end, 2), 'r-', 'LineWidth', 1,'DisplayName','arrhythmia');
+for i = 1:size(allNormalizedWindows, 1)
+    if allTargetMatrix(i) == 1
+        plot(allNormalizedWindows(i, :), 'Color', [0, 0.5, 0]);
+    else
+        plot(allNormalizedWindows(i, :), 'r');
+
     end
-    
-    % text(dataframe(window_start + round((window_end - window_start) / 2), 1), 0.5, class_labels{i}, 'HorizontalAlignment', 'center');
-    
-    temp = length(windows{i});
-    total = total + temp;
 end
 
-xlabel('Time [s]'); ylabel('Voltage norm.');
-legend('arrhythmia','normal');   
-string = ['Predicted Labels of ', num2str(fileIDs)];
-title(string);
-fprintf(1, 'displaying predicted labelled windows\n');
-hold off
+hold off;
+
+title('RR Intervals - Actual Labels');
+xlabel('RR Interval norm. - Index');
+ylabel('Voltage norm.');
+legend('normal', 'arrhythmia');  
+
+
+% ------ NEURAL NETWORK TRAINING -------------------------------------------
+% Create the target matrix for normalized windows
+numOutputClasses = 2;  % Two output classes: 'normal' and 'arrhythmia'
+targetMatrix = numeric_labels';
+
+% Define the neural network architecture
+net = patternnet([10, 15, 35, 20, 10, 5, numOutputClasses],  'trainlm');
+% Modify output layer activation function
+net.layers{end}.transferFcn = 'softmax';
+
+% Split the data into training and testing sets
+trainingPercentage = 80;
+nWindows = size(allNormalizedWindows, 1);
+seed = 40;
+rng(seed);
+
+
+cp = cvpartition(nWindows, 'HoldOut', (100 - trainingPercentage) / 100);
+
+% Use logical indexing to select training data
+trainingData = allNormalizedWindows(cp.training, :);
+trainingTargets = allTargetMatrix(:, cp.training)';
+
+% Use logical indexing to select testing data
+testingData = allNormalizedWindows(cp.test, :);
+testingTargets = allTargetMatrix(:, cp.test)';
+
+% Train the neural network
+net.trainParam.epochs = 20;  % Change this to the desired number of epochs
+net.trainParam.showWindow = true;  % Display training progress
+net.trainParam.max_fail = 20;  % Maximum validation failures
+net.trainParam.lr = 0.06;  % Learning rate
+net.trainParam.goal = 1e-6;  % Weight decay
+
+net = train(net, trainingData', trainingTargets');
+
+% Save the trained neural network model to a file
+save('ECG_model_DEMO_v01.mat', 'net');
+
+% Test the neural network
+predictions = round(net(testingData'),0);
+
+% Convert predictions to indices
+[~, predictedLabels] = max(predictions, [], 1);
+
+% Transpose testingTargets if needed
+[~, trueLabels] = max(testingTargets', [], 1);
+
+% Create a confusion matrix
+confMat = confusionmat(testingTargets', predictedLabels);
+
+% Display the confusion matrix
+disp('Confusion Matrix:');
+disp(confMat);
+% Create and display the confusion chart
+figure;
+confusionchart(testingTargets', predictedLabels, 'Normalization', 'row-normalized');
+title('Confusion Chart - ECG Classification');
+
+% Evaluate performance
+accuracy = sum(predictions == testingTargets') / numel(testingTargets');
+disp(['Accuracy: ', num2str(accuracy)]);
